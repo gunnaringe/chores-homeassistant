@@ -73,14 +73,22 @@ The coordinator is ready for this — it's why `occurrences_by_child` exists in 
 - Entity setup calls `await hass.async_block_till_done()` after `async_setup()`.
 - Never mock the coordinator internals; mock the API.
 
-## Linting
+## Linting and Git hooks
 
-`ruff` is configured to match Home Assistant core's style. Run it before every commit:
+`ruff` is configured to match Home Assistant core's style. Run it manually or let prek handle it:
 
 ```sh
-mise run lint  # checks + format --check
-mise run format  # apply fixes
+mise run lint      # ruff checks + format --check
+mise run format    # apply ruff fixes
+mise run setup-hooks  # install prek git hooks (once)
+mise run hooks     # run all hooks on all files
 ```
+
+Git hooks (configured in `prek.toml`) run automatically before commit:
+- File cleanup (trailing whitespace, EOF, YAML/JSON validation)
+- Python linting (ruff check)
+- Python formatting (ruff format)
+- Home Assistant validation (hassfest)
 
 ## When stuck
 
