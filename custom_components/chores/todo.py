@@ -22,7 +22,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .api import ChoresError
-from .const import CLASSIFICATION_OPTIONAL, DOMAIN
+from .const import CLASSIFICATION_OPTIONAL, DOMAIN, EVENT_TASK_COMPLETED
 from .coordinator import ChoresConfigEntry, ChoresCoordinator
 
 # An occurrence that has not been recorded yet has no id of its own, so items
@@ -141,6 +141,18 @@ class ChoresTodoListEntity(CoordinatorEntity[ChoresCoordinator], TodoListEntity)
         try:
             if item.status == TodoItemStatus.COMPLETED:
                 await self.coordinator.client.complete_task(task_id, child_id, due_date)
+                # Fire event for automations
+                self.hass.bus.async_fire(
+                    EVENT_TASK_COMPLETED,
+                    {
+                        "task_id": task_id,
+                        "task_title": occurrence.get("title"),
+                        "child_id": child_id,
+                        "child_name": occurrence.get("childName"),
+                        "due_date": due_date,
+                        "family_id": self.coordinator.family_id,
+                    },
+                )
             else:
                 await self.coordinator.client.uncomplete_task(
                     task_id, child_id, due_date

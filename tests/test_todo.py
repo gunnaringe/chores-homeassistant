@@ -190,3 +190,36 @@ async def test_renaming_is_rejected(
             },
             blocking=True,
         )
+
+
+async def test_completion_fires_event(
+    hass: HomeAssistant, aioclient_mock, config_entry, users_response
+) -> None:
+    """Completing a chore fires chores_task_completed event."""
+    from .conftest import FAMILY_ID
+
+    await setup_integration(
+        hass, aioclient_mock, config_entry, users_response, [occurrence()]
+    )
+    aioclient_mock.post(rpc_url("CompleteTask"), json={})
+
+    events = []
+    hass.bus.async_listen("chores_task_completed", lambda e: events.append(e))
+
+    await hass.services.async_call(
+        TODO_DOMAIN,
+        TodoServices.UPDATE_ITEM,
+        {
+            ATTR_ENTITY_ID: ENTITY_ID,
+            ATTR_ITEM: "Ta ut søpla",
+            ATTR_STATUS: "completed",
+        },
+        blocking=True,
+    )
+
+    assert len(events) == 1
+    assert events[0].data["task_id"] == "task-1"
+    assert events[0].data["task_title"] == "Ta ut søpla"
+    assert events[0].data["child_id"] == "child-1"
+    assert events[0].data["child_name"] == "Lisa"
+    assert events[0].data["family_id"] == FAMILY_ID
