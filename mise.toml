@@ -1,0 +1,26 @@
+[tools]
+python = "3.14"
+uv = "latest"
+ruff = "latest"
+buf = "latest"
+
+[env]
+# Use the mise-provided interpreter instead of letting uv download its own,
+# which would silently ignore the pin above.
+UV_PYTHON_PREFERENCE = "only-system"
+
+[tasks.test]
+description = "Run the test suite"
+run = "uv run pytest"
+
+[tasks.lint]
+description = "Lint and check formatting"
+run = ["ruff check .", "ruff format --check ."]
+
+[tasks.format]
+description = "Apply formatting"
+run = ["ruff format .", "ruff check --fix ."]
+
+[tasks.schema]
+description = "Check the live Chores schema still has the fields we read"
+run = "uv run python scripts/check_schema.py"

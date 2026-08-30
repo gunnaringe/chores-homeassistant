@@ -1,0 +1,9 @@
+{
+  "entity": {
+    "todo": {
+      "chores": {
+        "default": "mdi:broom"
+      }
+    }
+  }
+}

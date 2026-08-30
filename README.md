@@ -4,7 +4,7 @@ Home Assistant integration for [Chores](https://chores.apphub.casa), a household
 
 Chores is available as an installable web app and exposes its complete API through [Buf Connect](https://buf.build/apphub/chores).
 
-The integration source code is available on [GitHub](https://github.com/gunnaringe/chores).
+The integration source code is available on [GitHub](https://github.com/gunnaringe/chores-homeassistant).
 
 ## About Chores
 
