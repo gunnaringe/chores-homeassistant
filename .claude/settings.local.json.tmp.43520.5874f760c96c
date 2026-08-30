@@ -25,7 +25,13 @@
       "Bash(git checkout *)",
       "Bash(git push *)",
       "Bash(gh pr create --title 'Implement Chores Home Assistant integration — phase 1' --body ' *)",
-      "Bash(git commit -m 'Add CLAUDE.md and ARCHITECTURE.md, simplify README *)"
+      "Bash(git commit -m 'Add CLAUDE.md and ARCHITECTURE.md, simplify README *)",
+      "Bash(git rm *)",
+      "Bash(git commit --amend -m 'Add CLAUDE.md and ARCHITECTURE.md, simplify README *)",
+      "Bash(git commit -m 'Add integration icon from chores repo *)",
+      "WebFetch(domain:github.com)",
+      "Bash(rm .pre-commit-config.yaml)",
+      "Bash(git commit -m 'Setup prek for Git hooks via mise *)"
     ]
   }
 }
