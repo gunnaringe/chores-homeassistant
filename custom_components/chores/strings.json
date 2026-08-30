@@ -1,0 +1,53 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to Chores",
+        "description": "Create a personal access token in the Chores app under Settings, then paste it here.",
+        "data": {
+          "base_url": "Server URL",
+          "token": "Personal access token"
+        }
+      },
+      "family": {
+        "title": "Choose a family",
+        "data": {
+          "family_id": "Family"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reconnect to Chores",
+        "description": "The token for {name} is no longer valid. Create a new one in the Chores app and paste it here.",
+        "data": {
+          "token": "Personal access token"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach the Chores server.",
+      "invalid_auth": "That token was rejected."
+    },
+    "abort": {
+      "already_configured": "This family is already set up.",
+      "no_family": "This token is not a member of any family.",
+      "reauth_successful": "Reconnected to Chores."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Chores options",
+        "data": {
+          "scan_interval": "Update interval (seconds)"
+        }
+      }
+    }
+  },
+  "entity": {
+    "todo": {
+      "chores": {
+        "name": "Chores"
+      }
+    }
+  }
+}
