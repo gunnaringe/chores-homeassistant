@@ -2,18 +2,29 @@
 
 Home Assistant integration for [Chores](https://chores.apphub.casa), a household chore and allowance management service.
 
-Chores is available as an installable web app and exposes its complete API through [Buf Connect](https://buf.build/apphub/chores).
+## Features
 
-The integration source code is available on [GitHub](https://github.com/gunnaringe/chores-homeassistant).
+- Per-child todo list for today's chores
+- Mark chores complete or incomplete from Home Assistant
+- Multi-family support (add separate config entries for different households)
+- Automatic token refresh flow
 
-## About Chores
+## Installation
 
-Chores helps families manage household tasks, track completion, and handle allowances. The hosted service is available at [chores.apphub.casa](https://chores.apphub.casa).
+Install via [HACS](https://hacs.xyz/):
 
-The API is built with Buf Connect, and generated SDKs and API definitions are published at [buf.build/apphub/chores](https://buf.build/apphub/chores).
+1. Add this repository to HACS as a custom integration.
+2. Install "Chores".
+3. Restart Home Assistant.
+4. Go to **Settings → Devices & Services → Create Automation** and add the Chores integration.
+5. Paste your personal access token (create one in the Chores app under Settings).
+
+## Development
+
+See [CLAUDE.md](CLAUDE.md) for development guidance and [ARCHITECTURE.md](ARCHITECTURE.md) for design details.
 
 ## Links
 
-- [Chores Home Assistant integration source code](https://github.com/gunnaringe/chores)
 - [Chores web app](https://chores.apphub.casa)
-- [Chores API and SDKs](https://buf.build/apphub/chores)
+- [Chores API documentation](https://buf.build/apphub/chores)
+- [Home Assistant documentation](https://www.home-assistant.io/)
