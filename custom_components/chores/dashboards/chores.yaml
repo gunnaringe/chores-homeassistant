@@ -6,7 +6,7 @@ views:
         heading: Today's Chores
         heading_level: 2
 
-      - type: custom:stack-in-card
+      - type: vertical-stack
         cards:
           - type: todo-list
             entity: todo.lisa
@@ -17,8 +17,6 @@ views:
           - type: todo-list
             entity: todo.magnus
             title: Magnus's Chores
-        mode: vertical
-        title: By Child
 
   - title: Balances
     cards:
@@ -31,7 +29,7 @@ views:
           These cards will appear once the Chores integration adds balance sensors.
           For now, view balances in the Chores web app.
 
-      - type: custom:stack-in-card
+      - type: horizontal-stack
         cards:
           - type: entity
             entity: sensor.chores_lisa_balance
@@ -42,7 +40,6 @@ views:
           - type: entity
             entity: sensor.chores_magnus_balance
             title: Magnus's Balance
-        mode: horizontal
 
   - title: History
     cards:

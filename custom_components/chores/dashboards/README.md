@@ -18,7 +18,24 @@ This directory contains example Lovelace dashboards for the Chores integration.
    - Adjust card types and layout to suit your preferences
    - Add sensors, buttons, and other entities as new Chores integration features roll out
 
-### Option 2: Manual Reproduction
+### Option 2: YAML-Mode Dashboard (no UI needed)
+
+Copy `chores.yaml` to `<config>/dashboards/chores.yaml`, then register it in `configuration.yaml`:
+
+```yaml
+lovelace:
+  dashboards:
+    chores-dashboard:
+      mode: yaml
+      title: Chores
+      icon: mdi:broom
+      show_in_sidebar: true
+      filename: dashboards/chores.yaml
+```
+
+The key under `dashboards` (`chores-dashboard` above) becomes the URL path and **must contain a hyphen** — Home Assistant fails to set up the entire `lovelace` integration (which takes `frontend` down with it) if it doesn't, so double check this before restarting. Restart Home Assistant to pick up the new dashboard.
+
+### Option 3: Manual Reproduction
 
 Use the cards and layout in `chores.yaml` as a reference and build your dashboard visually in the Home Assistant UI.
 
@@ -54,9 +71,9 @@ The dashboard uses standard Lovelace cards:
 - `entity` — from Home Assistant core
 - `heading` — from Home Assistant core
 - `markdown` — from Home Assistant core
-- `custom:stack-in-card` — (optional, requires HACS card-mod or stack-in-card)
+- `vertical-stack` / `horizontal-stack` — from Home Assistant core
 
-To remove the `custom:stack-in-card` requirement, replace it with multiple rows of regular cards.
+No HACS frontend cards are required.
 
 ## Entity ID Mapping
 
