@@ -17,49 +17,30 @@ The Chores Connect API is simple enough to call by hand. `api.py` contains all w
 
 - **Proto3 JSON**: fields are `camelCase`, enums arrive as names (`"TASK_CLASSIFICATION_MANDATORY"`), zero values are omitted.
 - **Error codes**: `unauthenticated` and `permission_denied` → `ChoresAuthError` (triggers reauth). Everything else → `ChoresApiError`.
-- **Five methods**: `GetMyMembership`, `ListUsers`, `ListTaskOccurrences`, `CompleteTask`, `UncompleteTask`. All one-shot unary calls.
+- Every RPC the integration uses is a typed method in `ChoresClient` — see `api.py`. Covers the whole surface that has a sensible Home Assistant representation; see ARCHITECTURE.md's "What's deliberately out of scope" for the RPCs that don't (personal access tokens, Web Push, invitations, family lifecycle, `UpdateUser`).
 
 If you add an RPC, implement it as a typed method in `ChoresClient`, never copy the hand-rolled HTTP logic. If you want to swap to a generated SDK later (when it lands on PyPI), `api.py` is the only place to change.
 
 ### Entity scaffolding is repeatable
 
-`todo.py` is the one entity type in phase 1. The pattern for adding more (sensors, buttons, calendar) is:
+Four per-child platforms exist — `todo.py`, `sensor.py`, `button.py`, `calendar.py` — plus `services.py` for actions that take parameters rather than modeling state. The pattern for a new per-child entity type is:
 
 1. Add a new method to `ChoresClient` for the RPC(s) it needs.
-2. Store the data in `ChoresCoordinator.data` and parse it in `_async_update_data()`.
-3. Create `ChoresXxxEntity(CoordinatorEntity, TodoListEntity)` (or `SensorEntity`, etc.) with one `async def async_setup_entry()` that calls `async_add_entities`.
+2. Store the data in `ChoresCoordinator.data` (or a new coordinator, if it's one RPC per child rather than per family — see ARCHITECTURE.md on why `ChoresMonthlyEarningsCoordinator` is separate) and parse it in `_async_update_data()`.
+3. Create `ChoresXxxEntity(CoordinatorEntity, SensorEntity)` (or `ButtonEntity`, etc.) and set it up with `entity.py`'s `async_add_per_child_entities(coordinator, async_add_entities, make_entities)` — don't hand-roll the "add for existing children, then listen for new ones" logic again.
 4. Test the entity in a new `tests/test_xxx.py` using the fixtures in `conftest.py`.
 
-Don't repeat: `conftest.py` already has `occurrence()`, `users_response()`, `config_entry()`, and `setup_integration()`. Reuse them.
+For a new service (a command with parameters, not per-child state), add the schema, handler and registration to `services.py`, the field/service text to `strings.json` (and copy into `translations/en.json`), and the `services.yaml` selector definitions.
+
+Don't repeat: `conftest.py` already has `occurrence()`, `task()`, `child_summary()`, `monthly_earnings()`, `users_response()`, `config_entry()`, `rpc_url()`, and `setup_integration()`. Reuse them.
 
 ### Config and coordinator are load-bearing
 
-- **`config_flow.py`** — user step, family step (if multi-membership), reauth step. Unique ID is `family_id`. Never change the unique ID logic without a migration.
-- **`coordinator.py`** — one coordinator per config entry, responsible for keeping today's list accurate across timezone boundaries. The midnight refresh is deliberate.
+- **`config_flow.py`** — user step, family step (if multi-membership), reauth step, options step (scan interval, currency). Unique ID is `family_id`. Never change the unique ID logic without a migration.
+- **`coordinator.py`** — `ChoresCoordinator` (one per config entry, 5-minute default interval) keeps today's list, tasks and summaries accurate across timezone boundaries; the midnight refresh is deliberate. `ChoresMonthlyEarningsCoordinator` (hourly) is separate — see ARCHITECTURE.md for why.
 - **`const.py`** — centralized string constants. Enum names from proto3 JSON live here.
-
-## Upgrade path
-
-### Adding a sensor
-
-`ListChildSummaries` returns `balance`, `earned_today`, `earned_this_week`, etc. To add these:
-
-1. Call `list_child_summaries()` in the coordinator alongside the current `list_users()` and `list_task_occurrences()`.
-2. Store summaries in `ChoresCoordinator.data.summaries_by_child: dict[str, dict]`.
-3. Create `ChoresBalanceSensor` in a new file `custom_components/chores/sensor.py`.
-4. Add `"sensor"` to `PLATFORMS` in `const.py`.
-5. Test with a new `tests/test_sensor.py` using the existing fixtures.
-
-The coordinator is ready for this — it's why `occurrences_by_child` exists in the first place.
-
-### Adding a payout button
-
-`CreatePayout` takes `child_id` and either `full_payout=True` or an `amount`. To add:
-
-1. Add a `create_payout()` method to `ChoresClient`.
-2. Create `ChoresPayoutButton` in a new file `custom_components/chores/button.py`.
-3. `async_press()` reads `child_id` from somewhere (entity ID parse? stored config?) and calls the client.
-4. Test by mocking the button press and asserting `CreatePayout` was called.
+- **`entity.py`** — `async_add_per_child_entities`, the shared "one entity per child, plus new ones as they appear" scaffolding every per-child platform uses.
+- **`util.py`** — `occurrence_uid` (the `task_id|child_id|due_date` composite key) and `money_cents` (safe `Money` → `int` cents, handling proto3's zero-value omission and `int64`-as-string).
 
 ## Schema and versioning
 
@@ -68,7 +49,7 @@ The coordinator is ready for this — it's why `occurrences_by_child` exists in 
 
 ## Testing conventions
 
-- Use `conftest.py` fixtures: `config_entry`, `users_response`, `membership_response`, `occurrence()`, `rpc_url()`.
+- Use `conftest.py` fixtures: `config_entry`, `users_response`, `membership_response`, `occurrence()`, `task()`, `child_summary()`, `monthly_earnings()`, `rpc_url()`, `setup_integration()`.
 - Mock with `aioclient_mock`: `aioclient_mock.post(rpc_url("Method"), json={...})`.
 - Entity setup calls `await hass.async_block_till_done()` after `async_setup()`.
 - Never mock the coordinator internals; mock the API.
@@ -97,10 +78,11 @@ Git hooks (configured in `prek.toml`) run automatically before commit:
 3. **Entity not showing up?** Confirm the coordinator's `async_setup_entry()` was called and `async_add_entities()` was invoked.
 4. **Auth flow broken?** Trace through `config_flow.py` → `ChoresClient.get_my_membership()` → `ChoresAuthError` → `invalid_auth`.
 
-## Defer for phase 2+
+## What's out of scope, and why
 
-- Calendar entities from occurrences over a date range.
-- `chores_task_completed` event for automations.
-- Balance and earnings sensors (data is already one RPC away).
-- Payout buttons and services.
-- UI customization (icons, descriptions, entity categories).
+Not "not yet built" — deliberately excluded, because the RPC doesn't have a
+sensible Home Assistant representation. See ARCHITECTURE.md's "What's
+deliberately out of scope" for the reasoning behind each: personal access
+tokens, Web Push subscribe/unsubscribe, invitations, `CreateFamily`/
+`DeleteFamily`/`ListFamilies`, the dashboard-key RPCs, `LeaveFamily`, and
+`UpdateUser`.

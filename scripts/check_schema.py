@@ -21,7 +21,9 @@ import tempfile
 
 MODULE = "buf.build/apphub/chores"
 
-# What api.py, coordinator.py and todo.py actually read off the wire.
+# What api.py, coordinator.py and every entity/service module actually reads
+# off the wire (or sends, for request messages — a field renamed there breaks
+# us just as much as one we only read).
 REQUIRED_FIELDS: dict[str, set[str]] = {
     "User": {"id", "name", "role"},
     "Family": {"id", "name"},
@@ -41,6 +43,66 @@ REQUIRED_FIELDS: dict[str, set[str]] = {
     "ListTaskOccurrencesRequest": {"familyId", "startDate", "endDate"},
     "CompleteTaskRequest": {"taskId", "childId", "dueDate"},
     "UncompleteTaskRequest": {"taskId", "childId", "dueDate"},
+    "Money": {"cents"},
+    "ChildSummary": {
+        "child",
+        "balance",
+        "earnedToday",
+        "earnedThisWeek",
+        "earnedLast7Days",
+        "totalEarned",
+        "totalPaidOut",
+        "lastPayoutAt",
+    },
+    "ListChildSummariesResponse": {"summaries"},
+    "MonthlyEarning": {"yearMonth", "earned"},
+    "ListMonthlyEarningsResponse": {"months"},
+    "Task": {
+        "id",
+        "familyId",
+        "title",
+        "description",
+        "active",
+        "childIds",
+        "icon",
+        "classification",
+        "price",
+        "schedule",
+    },
+    "ListTasksResponse": {"tasks"},
+    "Schedule": {"once", "weekly", "cron"},
+    "OnceSchedule": {"date"},
+    "WeeklySchedule": {"daysOfWeek", "intervalWeeks", "anchorDate"},
+    "CronSchedule": {"expression"},
+    "CreateTaskRequest": {
+        "familyId",
+        "title",
+        "description",
+        "childIds",
+        "icon",
+        "classification",
+        "price",
+        "schedule",
+    },
+    "CreateTaskResponse": {"task"},
+    "UpdateTaskRequest": {
+        "taskId",
+        "title",
+        "description",
+        "active",
+        "childIds",
+        "icon",
+        "classification",
+        "price",
+        "schedule",
+    },
+    "UpdateTaskResponse": {"task"},
+    "DeleteTaskRequest": {"taskId"},
+    "CreatePayoutRequest": {"childId", "fullPayout", "note", "amount"},
+    "CreatePayoutResponse": {"payout"},
+    "CreateUserRequest": {"familyId", "name", "role"},
+    "CreateUserResponse": {"user"},
+    "RemoveChildRequest": {"childId"},
 }
 
 REQUIRED_METHODS = {
@@ -49,12 +111,24 @@ REQUIRED_METHODS = {
     "ListTaskOccurrences",
     "CompleteTask",
     "UncompleteTask",
+    "ListChildSummaries",
+    "ListMonthlyEarnings",
+    "ListTasks",
+    "CreateTask",
+    "UpdateTask",
+    "DeleteTask",
+    "CreatePayout",
+    "CreateUser",
+    "RemoveChild",
 }
 
 # proto3 JSON renders enums as their names, so the names are load-bearing too.
 REQUIRED_ENUM_VALUES: dict[str, set[str]] = {
-    "UserRole": {"USER_ROLE_CHILD"},
-    "TaskClassification": {"TASK_CLASSIFICATION_OPTIONAL"},
+    "UserRole": {"USER_ROLE_CHILD", "USER_ROLE_PARENT"},
+    "TaskClassification": {
+        "TASK_CLASSIFICATION_OPTIONAL",
+        "TASK_CLASSIFICATION_MANDATORY",
+    },
 }
 
 

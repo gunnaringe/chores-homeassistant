@@ -28,6 +28,7 @@ import voluptuous as vol
 from .api import ChoresApiError, ChoresAuthError, ChoresClient
 from .const import (
     CONF_BASE_URL,
+    CONF_CURRENCY,
     CONF_FAMILY_ID,
     CONF_SCAN_INTERVAL,
     DEFAULT_BASE_URL,
@@ -193,13 +194,19 @@ class ChoresOptionsFlow(OptionsFlow):
         current = self.config_entry.options.get(
             CONF_SCAN_INTERVAL, int(DEFAULT_SCAN_INTERVAL.total_seconds())
         )
+        current_currency = self.config_entry.options.get(CONF_CURRENCY, "")
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_SCAN_INTERVAL, default=current): vol.All(
                         vol.Coerce(int), vol.Range(min=60, max=3600)
-                    )
+                    ),
+                    # Purely a display choice for the money sensors — the API
+                    # itself carries no currency. Empty means "no currency
+                    # configured", so the sensors report a plain number
+                    # instead of an ISO 4217 code Home Assistant can't verify.
+                    vol.Optional(CONF_CURRENCY, default=current_currency): str,
                 }
             ),
         )

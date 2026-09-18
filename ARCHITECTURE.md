@@ -14,14 +14,31 @@ Instead, we hand-roll the five RPC calls we need. The cost is ~200 lines of wire
 
 ## Data model
 
-### `ChoresData` (coordinator output)
+### `ChoresRuntimeData` and the two coordinators
+
+`entry.runtime_data` holds both coordinators a config entry uses:
+
+```python
+@dataclass
+class ChoresRuntimeData:
+    main: ChoresCoordinator
+    monthly_earnings: ChoresMonthlyEarningsCoordinator
+```
+
+`ChoresCoordinator` (5-minute interval) is the main one:
 
 ```python
 @dataclass
 class ChoresData:
     children: list[dict]  # User rows where role == USER_ROLE_CHILD
     occurrences_by_child: dict[str, list[dict]]  # childId → [TaskOccurrence, ...]
+    tasks: list[dict]  # ListTasks — task definitions, for UpdateTask's merge
+    summaries_by_child: dict[str, dict]  # childId → ChildSummary
 ```
+
+`ChoresMonthlyEarningsCoordinator` (hourly) is separate — see "Why a second
+coordinator for monthly earnings" below — and its data is just
+`dict[str, list[dict]]`, mapping childId to its `ListMonthlyEarnings` months.
 
 The coordinator caches the schema enough to iterate entity setup (new children) and entity updates (new/completed occurrences for existing children).
 
@@ -69,13 +86,18 @@ Unique ID is family_id, so adding the same family twice is rejected. Multiple fa
 
 ## Coordinator and entities
 
-One `ChoresCoordinator` per config entry. Each refresh:
+One `ChoresCoordinator` per config entry, at the configured interval (5 minutes by default). Each refresh:
 
 - Calls `ListUsers` → filter children.
 - Calls `ListTaskOccurrences(start_date=today, end_date=today)` → group by child.
-- Stores in `ChoresData.children` and `ChoresData.occurrences_by_child`.
+- Calls `ListTasks` → task definitions, for services that need to merge against the current task.
+- Calls `ListChildSummaries` → balance/earnings, one call for the whole family.
 
-`ChoresTodoListEntity` (one per child) reads from `coordinator.data.occurrences_by_child[child_id]`. When the coordinator refreshes and a new child appears, a listener calls `async_add_entities()` to create the list dynamically. This means adding a child in the Chores app picks it up on the next refresh without reloading.
+Every per-child platform (`todo.py`, `sensor.py`, `button.py`, `calendar.py`) uses the same `async_add_per_child_entities` helper in `entity.py`: it adds entities for every current child, then listens for the coordinator to report new ones and adds those too. This means adding a child in the Chores app picks it up on the next refresh without reloading — one place implements it, so every platform gets it for free.
+
+**This is one-directional.** `known` in `async_add_per_child_entities` only grows; a child removed from the family (via `chores.remove_child` or in the app) drops out of `coordinator.data.children`, but its entities stay registered — the sensors go `unknown`, the todo list and calendar go empty, rather than the entities disappearing. Home Assistant doesn't auto-remove devices without an explicit registry cleanup, and adding one wasn't part of this pass; a leftover device for a removed child has to be removed by hand (Settings → Devices).
+
+`ChoresTodoListEntity` (one per child) reads from `coordinator.data.occurrences_by_child[child_id]`.
 
 ## Proto3 JSON wire format
 
@@ -107,13 +129,17 @@ Tests use `pytest-homeassistant-custom-component`, which provides:
 - `MockConfigEntry` (config entry builder).
 - Async support via `pytest-asyncio`.
 
-Fixtures in `conftest.py` are reused: `occurrence()`, `users_response()`, `membership_response()`, `config_entry()`, `rpc_url()`, `setup_integration()`.
+Fixtures in `conftest.py` are reused: `occurrence()`, `task()`, `child_summary()`, `monthly_earnings()`, `users_response()`, `membership_response()`, `config_entry()`, `rpc_url()`, `setup_integration()` — the last is the shared integration-setup helper, mocking every RPC either coordinator makes on refresh, with all-empty defaults so a test only has to pass the response(s) it actually cares about.
 
 **Test layers**:
 
 - **`test_api.py`**: client sends correct headers, parses proto3 JSON, maps error codes.
 - **`test_config_flow.py`**: single/multi-family flows, auth, reauth, already-configured.
 - **`test_todo.py`**: list renders correctly, complete/uncomplete calls the API, sorting works.
+- **`test_sensor.py`**: money sensors convert cents correctly, missing/zero data doesn't crash, the currency option toggles device_class/unit.
+- **`test_button.py`**: pressing pays out the full balance.
+- **`test_calendar.py`**: `event` is the next undone occurrence; `async_get_events` fetches and filters the requested range.
+- **`test_services.py`**: every service calls the right RPC with the right payload, `update_task`'s merge against the existing task, and unknown device/task ids raise `ServiceValidationError` rather than silently no-op'ing.
 - **`test_check_schema.py`**: live schema still has the fields we read.
 
 No mocking of internals or monkeypatching. Mock only the HTTP layer.
@@ -137,22 +163,84 @@ If the schema changes:
 
 The check is narrowly scoped: it doesn't fail on unrelated upstream changes, only on breaking changes to our surface.
 
-## Future expansion
+## Beyond phase 1
 
-### Sensors (balance, earnings)
+Everything below was "future expansion" in the original phase-1 design and has
+since been built, on top of the same coordinator and data model without
+changing it:
 
-Call `ListChildSummaries` in the coordinator, store in data, create a sensor entity. Data is already one RPC away.
+- **Sensors** (`sensor.py`): balance and earnings, from `ListChildSummaries`
+  (folded into `ChoresCoordinator`, one call per family per refresh) and
+  `ListMonthlyEarnings` (its own `ChoresMonthlyEarningsCoordinator`, on an
+  hourly interval — see below for why it's split out).
+- **Calendar** (`calendar.py`): one `CalendarEntity` per child.
+  `async_get_events` calls `ListTaskOccurrences` directly for the requested
+  range rather than reading the coordinator's cache, since the range a
+  calendar view asks for varies and isn't bounded to "today".
+- **Events**: `todo.py` fires `chores_task_completed` when `CompleteTask`
+  succeeds, carrying `task_id`, `task_title`, `child_id`, `child_name`,
+  `due_date`, `family_id`.
+- **Payouts** (`button.py`, `services.py`): a `ChoresPayoutButton` per child
+  for the common case (pay out the full balance); `chores.create_payout` for
+  a specific amount and note.
+- **Task management** (`services.py`): `chores.create_task`,
+  `chores.update_task`, `chores.delete_task`. Flat schedule fields
+  (`schedule_type`, `date`, `days_of_week`, `interval_weeks`,
+  `anchor_date`, `cron_expression`) get assembled into the `Schedule` oneof
+  in `_build_schedule`.
+- **User management** (`services.py`): `chores.create_user`,
+  `chores.remove_child`.
 
-### Calendar (occurrences over a date range)
+### Why a second coordinator for monthly earnings
 
-Call `ListTaskOccurrences` with a date range, create calendar events. Coordinator could cache this for a week or month.
+`ListChildSummaries` is one RPC for the whole family, so it rides along in
+the 5-minute `ChoresCoordinator` refresh for free. `ListMonthlyEarnings` is
+one RPC *per child*, for data (completed earnings by calendar month) that
+changes at most once a day. Folding it into the fast loop would multiply that
+loop's request count by the number of children for no benefit, so
+`ChoresMonthlyEarningsCoordinator` polls it separately, on an hourly
+interval, reading the child list off the main coordinator.
 
-### Events and automations
+### Why a service, not more entities, for task/user management
 
-Fire a `chores_task_completed` event when `CompleteTask` succeeds. Automations can trigger on it.
+Home Assistant entities model *state*; these are one-shot commands with
+several parameters (a task's title, schedule, price and assignees; a
+payout's amount and note) that don't fit a switch or a number entity without
+either a pile of per-field entities per task or a config UI this integration
+doesn't have. Services take a target (`device_id` for something scoped to a
+child, `config_entry_id` for something scoped to a family) plus flat fields,
+resolved in `services.py` via the device/config-entry registries.
 
-### Payouts
+### `UpdateTask` is a full replace, not a patch
 
-Call `CreatePayout`. Needs a button entity or a service. UI asks which child and whether full payout or custom amount.
+Every scalar field in `UpdateTaskRequest` is sent as-is; there's no
+per-field "leave this alone" signal on the wire, and `child_ids` explicitly
+replaces the task's full assignee list. A service call that only sets
+`title` would otherwise silently reset `active` to false, `price` to zero,
+and fail entirely on an empty `child_ids`. `chores.update_task` reads the
+current task out of `ChoresCoordinator.data.tasks` (populated by `ListTasks`
+in the same refresh as everything else) and merges any field the caller
+didn't pass in before sending.
 
-All additive on top of the current coordinator and data model.
+### What's deliberately out of scope
+
+RPCs that don't have a sensible Home Assistant surface, and why:
+
+- **Personal access tokens** — the integration authenticates with one; a
+  service that could revoke it would let an automation lock the integration
+  out of its own credential.
+- **Web Push** (`SubscribeToPush`/`UnsubscribeFromPush`) — a browser API tied
+  to a `PushSubscription` object HA has no equivalent of; HA has its own
+  notify platform for this.
+- **Invitations, `AcceptInvitation`** — onboarding flows for binding a login
+  identity, which happens in the Chores app, not from a backend integration.
+- **`CreateFamily`/`DeleteFamily`/`ListFamilies`, dashboard-key RPCs
+  (`GetDashboardConfig`/`SetupDashboard`/`DisableDashboard`)** — bootstrap or
+  destructive operations that precede having a config entry at all, or that
+  return a bearer secret that would otherwise sit in Home Assistant state.
+- **`LeaveFamily`** — removes the very login identity the integration
+  authenticates as.
+- **`UpdateUser`** — proto3 restricts renaming to self-service only ("a
+  bound login can rename its own user row and no one else's, even a parent
+  renaming a child"), so a "rename child" service would always fail
+  `permission_denied`.

@@ -180,8 +180,9 @@ otherwise surface as "Detected blocking call inside the event loop" at runtime.
 ## Repo layout
 
 ```
-custom_components/chores/{__init__,api,config_flow,const,coordinator,todo}.py
-custom_components/chores/{manifest.json,strings.json,icons.json}
+custom_components/chores/{__init__,api,config_flow,const,coordinator,entity,util}.py
+custom_components/chores/{todo,sensor,button,calendar,services}.py
+custom_components/chores/{manifest.json,strings.json,icons.json,services.yaml}
 custom_components/chores/translations/en.json
 scripts/check_schema.py
 tests/
@@ -204,9 +205,12 @@ Using `pytest-homeassistant-custom-component`:
 - Todo round trip: tick an item, assert `CompleteTask` was called with the right
   `task_id`, `child_id` and `due_date`; untick, assert `UncompleteTask`.
 
-## Deliberately deferred
+## Beyond phase 1
 
-Balance and earnings sensors (`ListChildSummaries`, `ListMonthlyEarnings`), calendar
-entities over a date range, payout buttons and services, and a
-`chores_task_completed` event for automations. All are additive on top of this
-coordinator — the data is one RPC away.
+This document describes phase 1 (the todo list) as originally planned. Balance
+and earnings sensors, calendar entities, payout buttons and services, task and
+user management services, and the `chores_task_completed` event have all since
+been built on top of the same coordinator and data model, without changing
+either — see ARCHITECTURE.md's "Beyond phase 1" section for how each one
+works and what was deliberately left out (personal access tokens, Web Push,
+invitations, family lifecycle, `UpdateUser`).

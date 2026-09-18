@@ -17,7 +17,13 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     PLATFORMS,
 )
-from .coordinator import ChoresConfigEntry, ChoresCoordinator
+from .coordinator import (
+    ChoresConfigEntry,
+    ChoresCoordinator,
+    ChoresMonthlyEarningsCoordinator,
+    ChoresRuntimeData,
+)
+from .services import async_setup_services
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ChoresConfigEntry) -> bool:
@@ -35,7 +41,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ChoresConfigEntry) -> bo
         hass, entry, client, entry.data[CONF_FAMILY_ID], interval
     )
     await coordinator.async_config_entry_first_refresh()
-    entry.runtime_data = coordinator
+
+    monthly_earnings = ChoresMonthlyEarningsCoordinator(
+        hass, entry, client, coordinator
+    )
+    await monthly_earnings.async_config_entry_first_refresh()
+
+    entry.runtime_data = ChoresRuntimeData(
+        main=coordinator, monthly_earnings=monthly_earnings
+    )
+
+    await async_setup_services(hass)
 
     @callback
     def _midnight_refresh(_now) -> None:

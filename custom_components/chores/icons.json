@@ -4,6 +4,65 @@
       "chores": {
         "default": "mdi:broom"
       }
+    },
+    "sensor": {
+      "balance": {
+        "default": "mdi:piggy-bank"
+      },
+      "earned_today": {
+        "default": "mdi:cash-plus"
+      },
+      "earned_this_week": {
+        "default": "mdi:cash-plus"
+      },
+      "earned_last_7_days": {
+        "default": "mdi:cash-plus"
+      },
+      "total_earned": {
+        "default": "mdi:cash-multiple"
+      },
+      "total_paid_out": {
+        "default": "mdi:cash-check"
+      },
+      "last_payout_at": {
+        "default": "mdi:calendar-check"
+      },
+      "earned_this_month": {
+        "default": "mdi:calendar-month"
+      },
+      "earned_last_month": {
+        "default": "mdi:calendar-month"
+      }
+    },
+    "button": {
+      "pay_out_balance": {
+        "default": "mdi:cash-fast"
+      }
+    },
+    "calendar": {
+      "chores": {
+        "default": "mdi:broom"
+      }
+    }
+  },
+  "services": {
+    "create_payout": {
+      "service": "mdi:cash-fast"
+    },
+    "create_task": {
+      "service": "mdi:plus-circle"
+    },
+    "update_task": {
+      "service": "mdi:pencil"
+    },
+    "delete_task": {
+      "service": "mdi:delete"
+    },
+    "create_user": {
+      "service": "mdi:account-plus"
+    },
+    "remove_child": {
+      "service": "mdi:account-remove"
     }
   }
 }

@@ -15,7 +15,7 @@ from homeassistant.components.todo import (
     TodoListEntity,
     TodoListEntityFeature,
 )
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
@@ -24,22 +24,8 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .api import ChoresError
 from .const import CLASSIFICATION_OPTIONAL, DOMAIN, EVENT_TASK_COMPLETED
 from .coordinator import ChoresConfigEntry, ChoresCoordinator
-
-# An occurrence that has not been recorded yet has no id of its own, so items
-# are keyed by the tuple CompleteTask actually takes. That way recorded and
-# unrecorded occurrences are handled identically.
-UID_SEPARATOR = "|"
-
-
-def _uid(occurrence: dict[str, Any]) -> str:
-    """Build the stable item id for an occurrence."""
-    return UID_SEPARATOR.join(
-        (
-            occurrence.get("taskId", ""),
-            occurrence.get("childId", ""),
-            occurrence.get("dueDate", ""),
-        )
-    )
+from .entity import async_add_per_child_entities
+from .util import UID_SEPARATOR, occurrence_uid as _uid
 
 
 def _sort_key(occurrence: dict[str, Any]) -> tuple[int, str]:
@@ -57,20 +43,13 @@ async def async_setup_entry(
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up a todo list for each child in the family."""
-    coordinator = entry.runtime_data
-    known: set[str] = set()
-
-    @callback
-    def _add_new_children() -> None:
-        """Add lists for children that have appeared since the last refresh."""
-        new = [child for child in coordinator.data.children if child["id"] not in known]
-        if not new:
-            return
-        known.update(child["id"] for child in new)
-        async_add_entities(ChoresTodoListEntity(coordinator, child) for child in new)
-
-    _add_new_children()
-    entry.async_on_unload(coordinator.async_add_listener(_add_new_children))
+    coordinator = entry.runtime_data.main
+    unsub = async_add_per_child_entities(
+        coordinator,
+        async_add_entities,
+        lambda child: [ChoresTodoListEntity(coordinator, child)],
+    )
+    entry.async_on_unload(unsub)
 
 
 class ChoresTodoListEntity(CoordinatorEntity[ChoresCoordinator], TodoListEntity):

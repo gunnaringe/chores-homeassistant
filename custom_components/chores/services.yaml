@@ -1,0 +1,196 @@
+create_payout:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: chores
+    full_payout:
+      default: true
+      selector:
+        boolean:
+    amount_cents:
+      default: 0
+      selector:
+        number:
+          min: 0
+          mode: box
+    note:
+      default: ""
+      selector:
+        text:
+
+create_task:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: chores
+    title:
+      required: true
+      selector:
+        text:
+    description:
+      selector:
+        text:
+    children:
+      required: true
+      selector:
+        device:
+          integration: chores
+          multiple: true
+    classification:
+      selector:
+        select:
+          options:
+            - "TASK_CLASSIFICATION_MANDATORY"
+            - "TASK_CLASSIFICATION_OPTIONAL"
+    price_cents:
+      selector:
+        number:
+          min: 0
+          mode: box
+    schedule_type:
+      required: true
+      selector:
+        select:
+          options:
+            - "once"
+            - "weekly"
+            - "cron"
+    date:
+      selector:
+        text:
+    days_of_week:
+      selector:
+        select:
+          multiple: true
+          options:
+            - "0"
+            - "1"
+            - "2"
+            - "3"
+            - "4"
+            - "5"
+            - "6"
+    interval_weeks:
+      selector:
+        number:
+          min: 1
+          mode: box
+    anchor_date:
+      selector:
+        text:
+    cron_expression:
+      selector:
+        text:
+
+update_task:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: chores
+    task_id:
+      required: true
+      selector:
+        text:
+    active:
+      selector:
+        boolean:
+    title:
+      selector:
+        text:
+    description:
+      selector:
+        text:
+    children:
+      selector:
+        device:
+          integration: chores
+          multiple: true
+    classification:
+      selector:
+        select:
+          options:
+            - "TASK_CLASSIFICATION_MANDATORY"
+            - "TASK_CLASSIFICATION_OPTIONAL"
+    price_cents:
+      selector:
+        number:
+          min: 0
+          mode: box
+    schedule_type:
+      selector:
+        select:
+          options:
+            - "once"
+            - "weekly"
+            - "cron"
+    date:
+      selector:
+        text:
+    days_of_week:
+      selector:
+        select:
+          multiple: true
+          options:
+            - "0"
+            - "1"
+            - "2"
+            - "3"
+            - "4"
+            - "5"
+            - "6"
+    interval_weeks:
+      selector:
+        number:
+          min: 1
+          mode: box
+    anchor_date:
+      selector:
+        text:
+    cron_expression:
+      selector:
+        text:
+
+delete_task:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: chores
+    task_id:
+      required: true
+      selector:
+        text:
+
+create_user:
+  fields:
+    config_entry_id:
+      required: true
+      selector:
+        config_entry:
+          integration: chores
+    name:
+      required: true
+      selector:
+        text:
+    role:
+      required: true
+      selector:
+        select:
+          options:
+            - "USER_ROLE_PARENT"
+            - "USER_ROLE_CHILD"
+
+remove_child:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: chores

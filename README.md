@@ -4,10 +4,19 @@ Home Assistant integration for [Chores](https://chores.apphub.casa), a household
 
 ## Features
 
-- Per-child todo list for today's chores
-- Mark chores complete or incomplete from Home Assistant
+- Per-child todo list for today's chores; mark chores complete or incomplete from Home Assistant
+- Per-child calendar of upcoming and past chores
+- Balance and earnings sensors (today, this week, last 7 days, this/last month, totals, last payout)
+- A pay-out button per child for the full outstanding balance
+- Services for creating/updating/deleting tasks, creating a payout of a specific amount, adding a family member, and removing a child
+- A `chores_task_completed` event for automations
 - Multi-family support (add separate config entries for different households)
 - Automatic token refresh flow
+
+Not covered: anything that manages the integration's own credential (personal
+access tokens), browser Web Push subscriptions, invitations, or
+family-lifecycle operations (create/delete a family, the kiosk dashboard key)
+— those stay in the Chores app itself.
 
 ## Installation
 

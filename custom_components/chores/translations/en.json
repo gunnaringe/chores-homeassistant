@@ -38,7 +38,8 @@
       "init": {
         "title": "Chores options",
         "data": {
-          "scan_interval": "Update interval (seconds)"
+          "scan_interval": "Update interval (seconds)",
+          "currency": "Currency code for money sensors (e.g. NOK, USD). Leave blank for a plain number."
         }
       }
     }
@@ -47,6 +48,227 @@
     "todo": {
       "chores": {
         "name": "Chores"
+      }
+    },
+    "sensor": {
+      "balance": {
+        "name": "Balance"
+      },
+      "earned_today": {
+        "name": "Earned today"
+      },
+      "earned_this_week": {
+        "name": "Earned this week"
+      },
+      "earned_last_7_days": {
+        "name": "Earned in last 7 days"
+      },
+      "total_earned": {
+        "name": "Total earned"
+      },
+      "total_paid_out": {
+        "name": "Total paid out"
+      },
+      "last_payout_at": {
+        "name": "Last payout"
+      },
+      "earned_this_month": {
+        "name": "Earned this month"
+      },
+      "earned_last_month": {
+        "name": "Earned last month"
+      }
+    },
+    "button": {
+      "pay_out_balance": {
+        "name": "Pay out balance"
+      }
+    },
+    "calendar": {
+      "chores": {
+        "name": "Chores"
+      }
+    }
+  },
+  "services": {
+    "create_payout": {
+      "name": "Create payout",
+      "description": "Record a payout against a child's balance.",
+      "fields": {
+        "device_id": {
+          "name": "Child",
+          "description": "The child's Chores device."
+        },
+        "full_payout": {
+          "name": "Full payout",
+          "description": "Pay out the child's entire outstanding balance, ignoring the amount field."
+        },
+        "amount_cents": {
+          "name": "Amount (minor units)",
+          "description": "Amount to pay out, in whole cents/øre. Ignored when full_payout is on."
+        },
+        "note": {
+          "name": "Note",
+          "description": "Optional note recorded with the payout."
+        }
+      }
+    },
+    "create_task": {
+      "name": "Create task",
+      "description": "Create a new recurring or one-off chore.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Family",
+          "description": "The Chores family to create the task in."
+        },
+        "title": {
+          "name": "Title",
+          "description": "The task's name."
+        },
+        "description": {
+          "name": "Description",
+          "description": "Optional longer description."
+        },
+        "children": {
+          "name": "Children",
+          "description": "Which children's Chores devices this task applies to."
+        },
+        "classification": {
+          "name": "Classification",
+          "description": "Whether the task is mandatory or optional."
+        },
+        "price_cents": {
+          "name": "Price (minor units)",
+          "description": "What completing this task earns, in whole cents/øre."
+        },
+        "schedule_type": {
+          "name": "Schedule type",
+          "description": "Once, weekly, or a raw cron expression."
+        },
+        "date": {
+          "name": "Date",
+          "description": "YYYY-MM-DD. Required when schedule type is 'once'."
+        },
+        "days_of_week": {
+          "name": "Days of week",
+          "description": "0=Sunday..6=Saturday. Required when schedule type is 'weekly'."
+        },
+        "interval_weeks": {
+          "name": "Interval (weeks)",
+          "description": "How many weeks between due weeks; 1 means every week."
+        },
+        "anchor_date": {
+          "name": "Anchor date",
+          "description": "YYYY-MM-DD reference week the interval is counted from."
+        },
+        "cron_expression": {
+          "name": "Cron expression",
+          "description": "5-field cron expression. Required when schedule type is 'cron'."
+        }
+      }
+    },
+    "update_task": {
+      "name": "Update task",
+      "description": "Update an existing task. Fields left blank keep their current value.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Family",
+          "description": "The Chores family the task belongs to."
+        },
+        "task_id": {
+          "name": "Task ID",
+          "description": "The task to update."
+        },
+        "active": {
+          "name": "Active",
+          "description": "Whether the task is active."
+        },
+        "title": {
+          "name": "Title",
+          "description": "The task's name."
+        },
+        "description": {
+          "name": "Description",
+          "description": "Optional longer description."
+        },
+        "children": {
+          "name": "Children",
+          "description": "Which children's Chores devices this task applies to."
+        },
+        "classification": {
+          "name": "Classification",
+          "description": "Whether the task is mandatory or optional."
+        },
+        "price_cents": {
+          "name": "Price (minor units)",
+          "description": "What completing this task earns, in whole cents/øre."
+        },
+        "schedule_type": {
+          "name": "Schedule type",
+          "description": "Once, weekly, or a raw cron expression."
+        },
+        "date": {
+          "name": "Date",
+          "description": "YYYY-MM-DD. Required when schedule type is 'once'."
+        },
+        "days_of_week": {
+          "name": "Days of week",
+          "description": "0=Sunday..6=Saturday. Required when schedule type is 'weekly'."
+        },
+        "interval_weeks": {
+          "name": "Interval (weeks)",
+          "description": "How many weeks between due weeks; 1 means every week."
+        },
+        "anchor_date": {
+          "name": "Anchor date",
+          "description": "YYYY-MM-DD reference week the interval is counted from."
+        },
+        "cron_expression": {
+          "name": "Cron expression",
+          "description": "5-field cron expression. Required when schedule type is 'cron'."
+        }
+      }
+    },
+    "delete_task": {
+      "name": "Delete task",
+      "description": "Soft-delete a task. Past occurrences and earnings are unaffected.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Family",
+          "description": "The Chores family the task belongs to."
+        },
+        "task_id": {
+          "name": "Task ID",
+          "description": "The task to delete."
+        }
+      }
+    },
+    "create_user": {
+      "name": "Create user",
+      "description": "Add a new (unbound) parent or child to a family.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Family",
+          "description": "The Chores family to add the user to."
+        },
+        "name": {
+          "name": "Name",
+          "description": "Display name for the new user."
+        },
+        "role": {
+          "name": "Role",
+          "description": "Parent or child."
+        }
+      }
+    },
+    "remove_child": {
+      "name": "Remove child",
+      "description": "Irreversibly remove a child, cascading away their tasks, history and payouts.",
+      "fields": {
+        "device_id": {
+          "name": "Child",
+          "description": "The child's Chores device."
+        }
       }
     }
   }

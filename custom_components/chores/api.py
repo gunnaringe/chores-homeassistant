@@ -116,3 +116,123 @@ class ChoresClient:
             "UncompleteTask",
             {"taskId": task_id, "childId": child_id, "dueDate": due_date},
         )
+
+    async def list_child_summaries(self, family_id: str) -> list[dict[str, Any]]:
+        """List balance and earnings summaries for every child in a family."""
+        body = await self._rpc("ListChildSummaries", {"familyId": family_id})
+        return body.get("summaries", [])
+
+    async def list_monthly_earnings(self, child_id: str) -> list[dict[str, Any]]:
+        """List a child's completed earnings by calendar month.
+
+        Descending by year_month; the server always includes the current and
+        previous calendar month even when their earnings are zero, so
+        months[0]/months[1] can be read as "this month"/"last month" without
+        special-casing an empty result.
+        """
+        body = await self._rpc("ListMonthlyEarnings", {"childId": child_id})
+        return body.get("months", [])
+
+    async def list_tasks(self, family_id: str) -> list[dict[str, Any]]:
+        """List every task definition (not occurrence) in a family."""
+        body = await self._rpc("ListTasks", {"familyId": family_id})
+        return body.get("tasks", [])
+
+    async def create_task(
+        self,
+        family_id: str,
+        title: str,
+        description: str,
+        child_ids: list[str],
+        classification: str,
+        price_cents: int,
+        schedule: dict[str, Any],
+        icon: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Create a task definition."""
+        payload: dict[str, Any] = {
+            "familyId": family_id,
+            "title": title,
+            "description": description,
+            "childIds": child_ids,
+            "classification": classification,
+            "price": {"cents": price_cents},
+            "schedule": schedule,
+        }
+        if icon is not None:
+            payload["icon"] = icon
+        body = await self._rpc("CreateTask", payload)
+        return body.get("task", {})
+
+    async def update_task(
+        self,
+        task_id: str,
+        title: str,
+        description: str,
+        active: bool,
+        child_ids: list[str],
+        classification: str,
+        price_cents: int,
+        schedule: dict[str, Any],
+        icon: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Replace a task definition.
+
+        Every field here overwrites the corresponding field on the task —
+        this is not a patch. A caller that only wants to change one field
+        must read the current task first and carry the rest through
+        unchanged, or it will silently reset them (active=false, price=0,
+        child_ids cleared, ...).
+        """
+        payload: dict[str, Any] = {
+            "taskId": task_id,
+            "title": title,
+            "description": description,
+            "active": active,
+            "childIds": child_ids,
+            "classification": classification,
+            "price": {"cents": price_cents},
+            "schedule": schedule,
+        }
+        if icon is not None:
+            payload["icon"] = icon
+        body = await self._rpc("UpdateTask", payload)
+        return body.get("task", {})
+
+    async def delete_task(self, task_id: str) -> None:
+        """Soft-delete a task definition."""
+        await self._rpc("DeleteTask", {"taskId": task_id})
+
+    async def create_payout(
+        self, child_id: str, full_payout: bool, amount_cents: int, note: str
+    ) -> dict[str, Any]:
+        """Record a payout against a child's balance.
+
+        When full_payout is true, amount_cents is ignored server-side and the
+        child's whole outstanding balance is paid out.
+        """
+        body = await self._rpc(
+            "CreatePayout",
+            {
+                "childId": child_id,
+                "fullPayout": full_payout,
+                "amount": {"cents": amount_cents},
+                "note": note,
+            },
+        )
+        return body.get("payout", {})
+
+    async def create_user(self, family_id: str, name: str, role: str) -> dict[str, Any]:
+        """Add a new (unbound) user to a family."""
+        body = await self._rpc(
+            "CreateUser", {"familyId": family_id, "name": name, "role": role}
+        )
+        return body.get("user", {})
+
+    async def remove_child(self, child_id: str) -> None:
+        """Remove a child, cascading away their tasks, history and payouts.
+
+        Irreversible — the child's task assignments, occurrence history and
+        payout history all go with it.
+        """
+        await self._rpc("RemoveChild", {"childId": child_id})
