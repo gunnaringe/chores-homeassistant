@@ -82,6 +82,52 @@ async def test_mandatory_sorts_before_optional(
     assert summaries == ["Ta ut søpla", "Vanne blomster"]
 
 
+async def test_must_do_and_can_do_lists(
+    hass: HomeAssistant, aioclient_mock, config_entry, users_response
+) -> None:
+    """Each half of the app's split also gets a list of its own."""
+    await setup_integration(
+        hass,
+        aioclient_mock,
+        config_entry,
+        users=users_response,
+        occurrences=[
+            occurrence(
+                taskId="task-2",
+                title="Vanne blomster",
+                classification="TASK_CLASSIFICATION_OPTIONAL",
+            ),
+            occurrence(),
+            # proto3 omits an unclassified chore's classification; it counts
+            # as "Must do", like in the app.
+            {
+                key: value
+                for key, value in occurrence(
+                    taskId="task-3", title="Re opp sengen"
+                ).items()
+                if key != "classification"
+            },
+        ],
+    )
+
+    items = await hass.services.async_call(
+        TODO_DOMAIN,
+        TodoServices.GET_ITEMS,
+        {ATTR_ENTITY_ID: ["todo.lisa_must_do", "todo.lisa_can_do"]},
+        blocking=True,
+        return_response=True,
+    )
+    assert [i["summary"] for i in items["todo.lisa_must_do"]["items"]] == [
+        "Re opp sengen",
+        "Ta ut søpla",
+    ]
+    assert [i["summary"] for i in items["todo.lisa_can_do"]["items"]] == [
+        "Vanne blomster"
+    ]
+    assert hass.states.get("todo.lisa_must_do").name == "Lisa Must do"
+    assert hass.states.get("todo.lisa").name == "Lisa"
+
+
 async def test_ticking_completes_the_task(
     hass: HomeAssistant, aioclient_mock, config_entry, users_response
 ) -> None:

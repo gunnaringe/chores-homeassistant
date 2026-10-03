@@ -48,6 +48,12 @@
     "todo": {
       "chores": {
         "name": "Chores"
+      },
+      "must_do": {
+        "name": "Must do"
+      },
+      "can_do": {
+        "name": "Can do"
       }
     },
     "sensor": {
