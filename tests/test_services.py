@@ -301,3 +301,31 @@ async def test_api_error_becomes_home_assistant_error(
             {"config_entry_id": config_entry.entry_id, "task_id": "task-1"},
             blocking=True,
         )
+
+
+async def test_missing_key_permission_is_an_action_error_not_reauth(
+    hass: HomeAssistant, aioclient_mock, config_entry
+) -> None:
+    """An API key without a write permission fails that action, naming the
+    permission, and leaves the entry alone — the key still works for
+    everything else, so asking for a new one would be wrong.
+    """
+    await setup_integration(hass, aioclient_mock, config_entry, tasks=[task()])
+    aioclient_mock.post(
+        rpc_url("DeleteTask"),
+        json={
+            "code": "permission_denied",
+            "message": "this token lacks the Manage tasks permission",
+        },
+        status=403,
+    )
+
+    with pytest.raises(HomeAssistantError, match="Manage tasks"):
+        await hass.services.async_call(
+            DOMAIN,
+            "delete_task",
+            {"config_entry_id": config_entry.entry_id, "task_id": "task-1"},
+            blocking=True,
+        )
+    await hass.async_block_till_done()
+    assert not list(config_entry.async_get_active_flows(hass, {"reauth"}))

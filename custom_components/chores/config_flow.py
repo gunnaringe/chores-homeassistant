@@ -25,7 +25,7 @@ from homeassistant.helpers.selector import (
 )
 import voluptuous as vol
 
-from .api import ChoresApiError, ChoresAuthError, ChoresClient
+from .api import ChoresApiError, ChoresAuthError, ChoresClient, ChoresPermissionError
 from .const import (
     CONF_BASE_URL,
     CONF_CURRENCY,
@@ -76,7 +76,7 @@ class ChoresConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Take the server URL and a personal access token."""
+        """Take the server URL and an API key."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -84,6 +84,8 @@ class ChoresConfigFlow(ConfigFlow, domain=DOMAIN):
                 memberships = await _async_memberships(
                     self.hass, user_input[CONF_BASE_URL], user_input[CONF_TOKEN]
                 )
+            except ChoresPermissionError:
+                errors["base"] = "missing_permission"
             except ChoresAuthError:
                 errors["base"] = "invalid_auth"
             except ChoresApiError:
@@ -161,6 +163,8 @@ class ChoresConfigFlow(ConfigFlow, domain=DOMAIN):
                 await _async_memberships(
                     self.hass, entry.data[CONF_BASE_URL], user_input[CONF_TOKEN]
                 )
+            except ChoresPermissionError:
+                errors["base"] = "missing_permission"
             except ChoresAuthError:
                 errors["base"] = "invalid_auth"
             except ChoresApiError:

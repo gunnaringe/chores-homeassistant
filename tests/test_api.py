@@ -10,6 +10,7 @@ from custom_components.chores.api import (
     ChoresApiError,
     ChoresAuthError,
     ChoresClient,
+    ChoresPermissionError,
 )
 
 from .conftest import BASE_URL, TOKEN, rpc_url
@@ -41,6 +42,25 @@ async def test_auth_errors(hass: HomeAssistant, aioclient_mock, code: str) -> No
     )
 
     with pytest.raises(ChoresAuthError):
+        await _client(hass).get_my_membership()
+
+
+async def test_permission_denied_is_a_permission_error(
+    hass: HomeAssistant, aioclient_mock
+) -> None:
+    """permission_denied keeps the server's message, which names the missing
+    API key permission.
+    """
+    aioclient_mock.post(
+        rpc_url("GetMyMembership"),
+        status=403,
+        json={
+            "code": "permission_denied",
+            "message": "this token lacks the Read permission",
+        },
+    )
+
+    with pytest.raises(ChoresPermissionError, match="Read permission"):
         await _client(hass).get_my_membership()
 
 

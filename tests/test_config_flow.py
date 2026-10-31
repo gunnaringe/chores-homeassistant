@@ -89,6 +89,28 @@ async def test_invalid_auth(hass: HomeAssistant, aioclient_mock) -> None:
     assert result["errors"] == {"base": "invalid_auth"}
 
 
+async def test_key_without_read_permission(hass: HomeAssistant, aioclient_mock) -> None:
+    """A valid key that lacks Read gets its own error, not "rejected"."""
+    aioclient_mock.post(
+        rpc_url("GetMyMembership"),
+        status=403,
+        json={
+            "code": "permission_denied",
+            "message": "this token lacks the Read permission",
+        },
+    )
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], USER_INPUT
+    )
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "missing_permission"}
+
+
 async def test_cannot_connect(hass: HomeAssistant, aioclient_mock) -> None:
     """An unreachable server is reported on the form."""
     aioclient_mock.post(
