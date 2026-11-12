@@ -39,6 +39,17 @@ class ChoresAuthError(ChoresError):
     """The token was rejected."""
 
 
+class ChoresPermissionError(ChoresAuthError):
+    """The token is valid but may not do this.
+
+    Chores API keys carry per-key permissions, and a call outside them gets
+    permission_denied with a message naming the missing one ("this token
+    lacks the Manage tasks permission"). A subclass of ChoresAuthError so a
+    read the integration can't work without still triggers reauth; actions
+    catch ChoresError and pass the message on instead.
+    """
+
+
 class ChoresClient:
     """Thin async client over the handful of RPCs this integration uses."""
 
@@ -74,6 +85,8 @@ class ChoresClient:
         if response.status != 200:
             code = body.get("code", "unknown")
             message = body.get("message", f"HTTP {response.status}")
+            if code == "permission_denied":
+                raise ChoresPermissionError(message)
             if code in AUTH_CODES:
                 raise ChoresAuthError(message)
             raise ChoresApiError(f"{method} failed ({code}): {message}")

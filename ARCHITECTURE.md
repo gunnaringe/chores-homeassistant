@@ -75,10 +75,12 @@ To fix this, we register an `async_track_time_change(hass, ..., hour=0, minute=0
 
 The flow is linear: **user** → (optional) **family** → **create**:
 
-1. **User step**: ask for base URL and personal access token (from Chores app settings).
+1. **User step**: ask for base URL and an API key (a personal access token; Chores app → Settings → API keys).
 2. **Validate**: call `GetMyMembership` to confirm the token is valid and bound to a family.
 3. **Family step** (if multiple memberships): dropdown to pick which family. Single membership auto-selects.
 4. **Create**: unique_id = family_id, title = family name, data = {base_url, token, family_id}.
+
+**Permissions**: API keys carry per-key permissions (see the README for which ones each feature needs). A refusal is `permission_denied` with a message naming the missing permission, which `api.py` raises as `ChoresPermissionError`, a subclass of `ChoresAuthError`. In the config flow it becomes the `missing_permission` error (the key lacks Read, which `GetMyMembership` needs). In the coordinator it triggers reauth like any auth error, since without Read nothing works. Actions (services, buttons, todo updates) catch `ChoresError` and raise `HomeAssistantError` with the message, so a key without, say, Manage tasks fails just that action instead of asking for a new key.
 
 **Reauth**: When the coordinator hits `ChoresAuthError`, it raises `ConfigEntryAuthFailed`. Home Assistant triggers the reauth flow, which is identical except it only asks for the token (base_url and family_id are already known).
 
@@ -226,9 +228,8 @@ didn't pass in before sending.
 
 RPCs that don't have a sensible Home Assistant surface, and why:
 
-- **Personal access tokens** — the integration authenticates with one; a
-  service that could revoke it would let an automation lock the integration
-  out of its own credential.
+- **Personal access tokens (API keys)** — the integration authenticates with
+  one, and Chores doesn't let a key manage keys at all.
 - **Web Push** (`SubscribeToPush`/`UnsubscribeFromPush`) — a browser API tied
   to a `PushSubscription` object HA has no equivalent of; HA has its own
   notify platform for this.

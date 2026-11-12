@@ -16,7 +16,7 @@ This repository is primarily developed and maintained by Claude. This file docum
 The Chores Connect API is simple enough to call by hand. `api.py` contains all wire-format handling:
 
 - **Proto3 JSON**: fields are `camelCase`, enums arrive as names (`"TASK_CLASSIFICATION_MANDATORY"`), zero values are omitted.
-- **Error codes**: `unauthenticated` and `permission_denied` → `ChoresAuthError` (triggers reauth). Everything else → `ChoresApiError`.
+- **Error codes**: `unauthenticated` → `ChoresAuthError`; `permission_denied` → `ChoresPermissionError`, its subclass (the API key lacks a permission; the message names it). Both trigger reauth from the coordinator, but actions catch `ChoresError` and raise `HomeAssistantError`, so a missing write permission fails only that action. Everything else → `ChoresApiError`.
 - Every RPC the integration uses is a typed method in `ChoresClient` — see `api.py`. Covers the whole surface that has a sensible Home Assistant representation; see ARCHITECTURE.md's "What's deliberately out of scope" for the RPCs that don't (personal access tokens, Web Push, invitations, family lifecycle, `UpdateUser`).
 
 If you add an RPC, implement it as a typed method in `ChoresClient`, never copy the hand-rolled HTTP logic. If you want to swap to a generated SDK later (when it lands on PyPI), `api.py` is the only place to change.

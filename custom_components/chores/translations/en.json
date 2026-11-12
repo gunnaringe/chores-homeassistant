@@ -3,10 +3,10 @@
     "step": {
       "user": {
         "title": "Connect to Chores",
-        "description": "Create a personal access token in the Chores app under Settings, then paste it here.",
+        "description": "Create an API key in the Chores app (Settings → API keys) and paste it here. It needs at least **Read** and **Tick off tasks**. Add **Manage tasks**, **Manage children** and **Payouts** to use the task, child and payout actions and the pay-out button.",
         "data": {
           "base_url": "Server URL",
-          "token": "Personal access token"
+          "token": "API key"
         }
       },
       "family": {
@@ -17,19 +17,20 @@
       },
       "reauth_confirm": {
         "title": "Reconnect to Chores",
-        "description": "The token for {name} is no longer valid. Create a new one in the Chores app and paste it here.",
+        "description": "The API key for {name} is no longer valid — it may have been revoked or expired. Create a new one in the Chores app (Settings → API keys) and paste it here.",
         "data": {
-          "token": "Personal access token"
+          "token": "API key"
         }
       }
     },
     "error": {
       "cannot_connect": "Could not reach the Chores server.",
-      "invalid_auth": "That token was rejected."
+      "invalid_auth": "That API key was rejected.",
+      "missing_permission": "That API key lacks the Read permission. Create one with at least Read and Tick off tasks."
     },
     "abort": {
       "already_configured": "This family is already set up.",
-      "no_family": "This token is not a member of any family.",
+      "no_family": "This API key's login is not a member of any family.",
       "reauth_successful": "Reconnected to Chores."
     }
   },
